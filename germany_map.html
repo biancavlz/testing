@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="http://d3js.org/d3.v3.min.js"></script>
+
+<style>
+  h1 {
+    text-align: center;
+  }
+
+  .background {
+    fill: none;
+    stroke: black;
+    stroke-width: 0;
+    pointer-events: all;
+  }
+
+  #states {
+    fill: rgb(18, 134, 125);
+    stroke: #fff;
+    stroke-width: 1.25px;
+    opacity: 0.85;
+  }
+
+  #states .active {
+    fill: rgb(65, 179, 170);
+  }
+
+  div.tooltip {	
+    position: absolute;			
+    text-align: center;			
+    width: auto;					
+    height: auto;					
+    padding: 10px;				
+    font: 13px sans-serif;		
+    background: white;	
+    border: 1px solid black;
+    border-radius: 1px;			
+    pointer-events: none;			
+  }
+</style>
+
+<body>
+  <div id="map"> 
+    <h1>Map of germany</h1>
+  </div>
+
+<script>
+  let width = 1000,
+      height = 500,
+      focused = null,
+      geoPath;
+
+  // Anchors
+  const svg = d3.select("#map")
+    .append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+  const g = svg.append("g")
+    .append("g")
+    .attr("id", "states");
+
+  // D3.JS settings
+  // Gets data from GeoJson file and draws the map
+  d3.json("https://biancavlz.github.io/testing/germany.json", (collection) => {
+    
+    // Generates the map area with geographic coordinates
+    // Note: for new D3.js versions => d3.geoBounds(object) https://github.com/d3/d3-geo#geoBounds 
+    const bounds = d3.geo.bounds(collection), 
+      bottomLeft = bounds[0],
+      topRight = bounds[1],
+      rotLong = -(topRight[0]+bottomLeft[0])/2;
+      center = [(topRight[0]+bottomLeft[0])/2+rotLong, (topRight[1]+bottomLeft[1])/2],
+        
+    // Generates projection scale
+    // Note: for new versions of D3.js  => d3.geoAlbers() https://github.com/d3/d3-geo  
+    projection = d3.geo.albers() 
+      .parallels([bottomLeft[1],topRight[1]])
+      .rotate([rotLong,0,0])
+      .translate([width/2,height/2])
+      .center(center),
+      
+    bottomLeftPx = projection(bottomLeft),
+    topRightPx = projection(topRight),
+    scaleFactor = 1.00*Math.min(width/(topRightPx[0]-bottomLeftPx[0]), height/(-topRightPx[1]+bottomLeftPx[1])),
+    
+    projection = d3.geo.albers()
+      .parallels([bottomLeft[1],topRight[1]])
+      .rotate([rotLong,0,0])
+      .translate([width/2,height/2])
+      .scale(scaleFactor*0.975*1000)
+      .center(center);
+
+    // Generates an svg path data to project
+    geoPath = d3.geo.path().projection(projection); 
+    
+    // Generates map with regions with colors scheme
+    g.selectAll("path.feature")
+      .data(collection.features)
+      .enter()
+      .append("path")
+      .attr("class", "feature")
+      .attr("d", geoPath)
+      .attr("fill", (d) => {
+        d.total = d.properties.STREAMS || 0;
+        return colorScale(d.total);
+      })
+      .on("mouseover", onHoverRegion);
+  });
+
+  onHoverRegion = (d) => {
+    const x = width/2,
+          y = height/2,
+          k = 1;
+
+    g.selectAll("text")
+      .remove();
+    if ((focused === null) || !(focused === d)) {
+      const centroid = geoPath.centroid(d),
+          x = +centroid[0],
+          y = +centroid[1],
+          k = 1.75;
+      focused = d;
+      
+      g.append("text")
+        .on("mouseover", showTooltip(d))
+        .on("mouseout", hideTooltip(d));
+    } else {
+      focused = null;
+    };
+
+    g.selectAll("path")
+      .classed("active", focused && function(d) { return d === focused; });
+  }
+
+  // Color schemes
+  const colorScale = d3.scale.threshold()
+    .domain([100000, 500000, 100000, 150000, 200000, 300000, 350000])
+    .range(['#a8dcd8', '#40b3aa', '#14a398', '#12867d', '#0e6861']);
+
+  // Tooltip
+  const tooltip = d3.select("body")
+    .append("div")
+    .attr("class", "tooltip")
+    .style("opacity", 5);
+
+  showTooltip = (d) => {
+    tooltip.transition()		
+      .duration(200)		
+      .style("opacity", .9);
+    
+    tooltip.html(() => {
+      return `
+        <p>${d.properties.NAME_1}</p>
+        <p><span>Streams:</span>${d.properties.STREAMS}</p>
+        <p><span>On max bitrate:</span>${d.properties.ON_MAX_BITRATE}</p>
+      `;
+    })
+    .style("left", (d3.event.pageX) + "px")		
+    .style("top", (d3.event.pageY - 28) + "px");
+  }
+
+  hideTooltip = (d) => {
+    tooltip.transition()    
+      .duration(500)    
+      .style("opacity", 5);
+  }
+</script>
+
+</body>
