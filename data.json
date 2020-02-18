@@ -1,0 +1,84 @@
+{
+    "data": [
+        {
+            "iso_country": "DE",
+            "sub_division": "BW",
+            "count": 341616
+        },
+        {
+            "iso_country": "DE",
+            "sub_division": "BY",
+            "count": 341616
+        },
+        {
+            "iso_country": "DE",
+            "sub_division": "BE",
+            "count": 400440
+        },
+        {
+            "iso_country": "DE",
+            "sub_division": "BB",
+            "count": 569788
+        },
+        {
+            "iso_country": "DE",
+            "sub_division": "HB",
+            "count": 23456
+        },
+        {
+            "iso_country": "DE",
+            "sub_division": "HH",
+            "count": 687558
+        },
+        {
+            "iso_country": "DE",
+            "sub_division": "MV",
+            "count": 2356
+        },
+        {
+            "iso_country": "DE",
+            "sub_division": "HE",
+            "count": 67890
+        },
+        {
+            "iso_country": "DE",
+            "sub_division": "NI",
+            "count": 25657
+        },
+        {
+            "iso_country": "DE",
+            "sub_division": "RP",
+            "count": 57990
+        },
+        {
+            "iso_country": "DE",
+            "sub_division": "NW",
+            "count": 367789
+        },
+        {
+            "iso_country": "DE",
+            "sub_division": "SL",
+            "count": 12378
+        },
+        {
+            "iso_country": "DE",
+            "sub_division": "ST",
+            "count": 86875
+        },
+        {
+            "iso_country": "DE",
+            "sub_division": "SN",
+            "count": 87655
+        },
+        {
+            "iso_country": "DE",
+            "sub_division": "SH",
+            "count": 48990
+        },
+        {
+            "iso_country": "DE",
+            "sub_division": "TH",
+            "count": 1235
+        }
+    ]
+}
