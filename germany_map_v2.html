@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<!-- Load d3.js -->
+<script src="http://d3js.org/d3.v4.js"></script>
+<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+<script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
+
+<!-- Create an element where the map will take place -->
+<svg id="map" width="1500" height="3500"></svg>
+
+<script>
+
+  // The svg
+  var svg = d3.select("svg"),
+    width = +svg.attr("width"),
+    height = +svg.attr("height");
+  
+  // Map and projection
+  var path = d3.geoPath();
+  var projection = d3.geoMercator()
+    .scale(2000)
+    .center([0,20])
+    .translate([width / 2, height / 2]);
+  
+  // Data and color scale
+  var data = d3.map();
+  var colorScale = d3.scaleThreshold()
+    .domain([100000, 1000000, 10000000, 30000000, 100000000, 500000000])
+    .range(d3.schemeGreens[7]);
+  
+  // Load external data and boot
+  d3.queue()
+    .defer(d3.json, "https://biancavlz.github.io/testing/germany_coordinates.json")
+    .defer(d3.csv, "https://biancavlz.github.io/testing/data.csv", function(d) { data.set(d.sub_division, +d.count); })
+    .await(ready);
+  
+  function ready(error, topo) {
+  
+    let mouseOver = function(d) {
+      d3.selectAll(".state")
+        .transition()
+        .duration(200)
+        .style("opacity", .5)
+      d3.select(this)
+        .transition()
+        .duration(200)
+        .style("opacity", 1)
+        .style("stroke", "black")
+    }
+  
+    let mouseLeave = function(d) {
+      d3.selectAll(".state")  
+        .transition()
+        .duration(200)
+        .style("opacity", .8)
+      d3.select(this)
+        .transition()
+        .duration(200)
+        .style("stroke", "transparent")
+    }
+  
+    // Draw the map
+    svg.append("g")
+      .selectAll("path")
+      .data(topo.features)
+      .enter()
+      .append("path")
+        // draw each state
+        .attr("d", d3.geoPath()
+          .projection(projection)
+        )
+        // set the color of each state
+        .attr("fill", function (d) {
+          // console.log(d)
+          d.total = data.get(d.properties.sub_division) || 0;
+          return colorScale(d.total);
+        })
+        .style("stroke", "transparent")
+        .attr("class", function(d){ return "state" } )
+        .style("opacity", .8)
+        .on("mouseover", mouseOver )
+        .on("mouseleave", mouseLeave )
+      }
+  
+  </script>
