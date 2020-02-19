@@ -1,7 +1,5 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-
-<!-- Load d3.js -->
 <script src="http://d3js.org/d3.v4.js"></script>
 
 <style>
@@ -9,15 +7,14 @@
     text-align: center;
   }
 
-  #states {
-    fill: rgb(18, 134, 125);
+  #state {
     stroke: #fff;
     stroke-width: 1.25px;
     opacity: 0.85;
   }
 
-  #states .active {
-    fill: rgb(65, 179, 170);
+  #state .active {
+    fill: rgb(201, 242, 238);
   }
 
   div.tooltip {	
@@ -38,112 +35,109 @@
   <div id="map">
     <h1>Germany map</h1>
   </div>
-</body>
 
-
-<script>
-  let width = 1500,
-    height = 3500,
-    focused = null,
-
-//anchors
-svg = d3.select("#map")
-    .append("svg")
-    .attr("width", width)
-    .attr("height", height);
-
-const g = svg.append("g")
-  .append("g")
-  .attr("id", "states");
- 
-  // Map and projection and position
-  var path = d3.geoPath();
-  var projection = d3.geoMercator()
-    .scale(2000)
-    .center([0,20])
-    .translate([width / 2, height / 2])
+  <script>
+    let width = 1500,
+        height = 3500,
+        focused = null,
   
-  // Data
-  const data = d3.map();
-  // draw each state
-  const geoPath = d3.geoPath().projection(projection);
-  
-  // Color schemes
-  const colorScale = d3.scaleThreshold()
-    .domain([1000, 35000, 50000, 1000000, 150000, 200000])
-    .range(['#a8dcd8', '#40b3aa', '#14a398', '#12867d', '#0e6861']);
-  
-  // Load external data and boot
-  d3.queue()
-    .defer(d3.json, "https://biancavlz.github.io/testing/germany_coordinates.json")
-    .defer(d3.csv, "https://biancavlz.github.io/testing/data.csv", function(d) { data.set(d.sub_division, +d.count); })
-    .await(ready);
-  
-  function ready(error, topo) {
-    g.selectAll("path.feature")
-      .data(topo.features)
-      .enter()
-      .append("path")
-      .attr("class", "feature")
-      .attr("d", geoPath)
-      .attr("fill", (d) => {
-        d.total = data.get(d.properties.sub_division) || 0;
-        return colorScale(d.total);
-      })
-      .on("mouseover", onHoverArea);
-  }
+    //anchors
+    svg = d3.select("#map")
+          .append("svg")
+          .attr("width", width)
+          .attr("height", height);
+    g = svg.append("g").attr("id", "state");
 
-  onHoverArea = (d) => {
-    const x = width/2,
-          y = height/2,
-          k = 1;
-
-    g.selectAll("text")
-      .remove();
-    if ((focused === null) || !(focused === d)) {
-      const centroid = geoPath.centroid(d),
-          x = +centroid[0],
-          y = +centroid[1],
-          k = 1.75;
-      focused = d;
-      
-      g.append("text")
-        .on("mouseover", showTooltip(d))
-        .on("mouseout", hideTooltip(d));
-    } else {
-      focused = null;
-    };
-
-    g.selectAll("path")
-      .classed("active", focused && function(d) { return d === focused; });
-  }
-
-//tooltip
-  const tooltip = d3.select("body")
-    .append("div")
-    .attr("class", "tooltip")
-    .style("opacity", 5);
-
-  showTooltip = (d) => {
-    tooltip.transition()		
-      .duration(200)		
-      .style("opacity", .9);
+    // Map projection and position
+    const path = d3.geoPath();
+    const projection = d3.geoMercator()
+      .scale(2000)
+      .center([0,20])
+      .translate([width / 2, height / 2])
     
-    tooltip.html(() => {
-      return `
-        <p>${d.properties.name}</p>
-        <p><span>Streams:</span>${d.total}</p>
-        <p><span>On max bitrate:</span> % calculation</p>
-        <p><span>Sub division:</span>${d.properties.sub_division}</p>
-      `;
-    })
-    .style("left", (d3.event.pageX) + "px")		
-    .style("top", (d3.event.pageY - 28) + "px");
-  }
+    
+    const data = d3.map(); // Data
+    const geoPath = d3.geoPath().projection(projection); // draw each state
+    
+    // Color schemes
+    const colorScale = d3.scaleThreshold()
+      .domain([1000, 35000, 50000, 1000000, 150000, 200000])
+      .range(['#a8dcd8', '#40b3aa', '#14a398', '#12867d', '#0e6861']);
+    
+    // Main function
+    map = (error, topo) => {
+      g.selectAll("path.feature")
+        .data(topo.features)
+        .enter()
+        .append("path")
+        .attr("class", "feature")
+        .attr("d", geoPath)
+        .attr("fill", (d) => {
+          d.total = data.get(d.properties.sub_division) || 0;
+          return colorScale(d.total);
+        })
+        .on("mouseover", onHoverArea);
+    }
 
-  hideTooltip = (d) => {
-    tooltip.transition()    
-      .duration(500)    
+    // OnHover functionality
+    onHoverArea = (d) => {
+      const x = width/2,
+            y = height/2,
+            k = 1;
+
+      g.selectAll("text").remove();
+      
+      if ((focused === null) || !(focused === d)) {
+        const centroid = geoPath.centroid(d),
+        x = +centroid[0], 
+        y = +centroid[1],
+        k = 1.75;
+        focused = d;
+        
+        g.append("text")
+          .on("mouseover", showTooltip(d))
+          .on("mouseout", hideTooltip(d));
+      } else {
+        focused = null;
+      };
+
+      g.selectAll("path")
+        .classed("active", focused && function(d) { return d === focused; });
+    }
+
+    //Tooltip functionality
+    const tooltip = d3.select("body")
+      .append("div")
+      .attr("class", "tooltip")
       .style("opacity", 5);
-  }
+
+    showTooltip = (d) => {
+      tooltip.transition()		
+            .duration(200)		
+            .style("opacity", .9);
+      
+      tooltip.html(() => {
+        return `
+          <p>${d.properties.name}</p>
+          <p><span>Streams:</span>${d.total}</p>
+          <p><span>On max bitrate:</span> % calculation</p>
+          <p><span>Sub division:</span>${d.properties.sub_division}</p>
+        `;
+      })
+      .style("left", (d3.event.pageX) + "px")		
+      .style("top", (d3.event.pageY - 28) + "px");
+    }
+
+    hideTooltip = (d) => {
+      tooltip.transition()    
+        .duration(500)    
+        .style("opacity", 5);
+    }
+    
+    // Load external data and draw map
+    d3.queue()
+      .defer(d3.json, "https://biancavlz.github.io/testing/germany_coordinates.json")
+      .defer(d3.csv, "https://biancavlz.github.io/testing/data.csv", function(d) { data.set(d.sub_division, +d.count); })
+      .await(map);
   </script>
+</body>
