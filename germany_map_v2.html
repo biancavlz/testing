@@ -3,27 +3,71 @@
 
 <!-- Load d3.js -->
 <script src="http://d3js.org/d3.v4.js"></script>
-<!-- <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script> -->
 
-<!-- Create an element where the map will take place -->
-<svg id="map" width="1500" height="3500"></svg>
+<style>
+  h1 {
+    text-align: center;
+  }
+
+  #states {
+    fill: rgb(18, 134, 125);
+    stroke: #fff;
+    stroke-width: 1.25px;
+    opacity: 0.85;
+  }
+
+  #states .active {
+    fill: rgb(65, 179, 170);
+  }
+
+  div.tooltip {	
+    position: absolute;			
+    text-align: center;			
+    width: auto;					
+    height: auto;					
+    padding: 10px;				
+    font: 13px sans-serif;		
+    background: white;	
+    border: 1px solid black;
+    border-radius: 1px;			
+    pointer-events: none;			
+  }
+</style>
+
+<body>
+  <div id="map">
+    <h1>Germany map</h1>
+  </div>
+</body>
+
 
 <script>
+  let width = 1500,
+    height = 3500,
+    focused = null,
 
-  // The svg
-  var svg = d3.select("svg"),
-    width = +svg.attr("width"),
-    height = +svg.attr("height");
-  
-  // Map and projection
+//anchors
+svg = d3.select("#map")
+    .append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+const g = svg.append("g")
+  .append("g")
+  .attr("id", "states");
+ 
+  // Map and projection and position
   var path = d3.geoPath();
   var projection = d3.geoMercator()
     .scale(2000)
     .center([0,20])
-    .translate([width / 2, height / 2]);
+    .translate([width / 2, height / 2])
   
   // Data
-  var data = d3.map();
+  const data = d3.map();
+  // draw each state
+  const geoPath = d3.geoPath().projection(projection);
+  
   // Color schemes
   const colorScale = d3.scaleThreshold()
     .domain([1000, 35000, 50000, 1000000, 150000, 200000])
@@ -36,50 +80,70 @@
     .await(ready);
   
   function ready(error, topo) {
-  
-    let mouseOver = function(d) {
-      d3.selectAll(".state")
-        .transition()
-        .duration(200)
-        .style("opacity", .5)
-      d3.select(this)
-        .transition()
-        .duration(200)
-        .style("opacity", 1)
-        .style("stroke", "white")
-    }
-  
-    let mouseLeave = function(d) {
-      d3.selectAll(".state")  
-        .transition()
-        .duration(200)
-        .style("opacity", .8)
-      d3.select(this)
-        .transition()
-        .duration(200)
-        .style("stroke", "transparent")
-    }
-  
-    // Draw the map
-    svg.append("g")
-      .selectAll("path")
+    g.selectAll("path.feature")
       .data(topo.features)
       .enter()
       .append("path")
-        // draw each state
-        .attr("d", d3.geoPath()
-          .projection(projection)
-        )
-        // set the color of each state
-        .attr("fill", function (d) {
-          // console.log(d)
-          d.total = data.get(d.properties.sub_division) || 0;
-          return colorScale(d.total);
-        })
-        .style("stroke", "transparent")
-        .attr("class", function(d){ return "state" } )
-        .style("opacity", .8)
-        .on("mouseover", mouseOver )
-        .on("mouseleave", mouseLeave )
-      }
+      .attr("class", "feature")
+      .attr("d", geoPath)
+      .attr("fill", (d) => {
+        d.total = data.get(d.properties.sub_division) || 0;
+        return colorScale(d.total);
+      })
+      .on("mouseover", onHoverArea);
+  }
+
+  onHoverArea = (d) => {
+    const x = width/2,
+          y = height/2,
+          k = 1;
+
+    g.selectAll("text")
+      .remove();
+    if ((focused === null) || !(focused === d)) {
+      const centroid = geoPath.centroid(d),
+          x = +centroid[0],
+          y = +centroid[1],
+          k = 1.75;
+      focused = d;
+      
+      g.append("text")
+        .on("mouseover", showTooltip(d))
+        .on("mouseout", hideTooltip(d));
+    } else {
+      focused = null;
+    };
+
+    g.selectAll("path")
+      .classed("active", focused && function(d) { return d === focused; });
+  }
+
+//tooltip
+  const tooltip = d3.select("body")
+    .append("div")
+    .attr("class", "tooltip")
+    .style("opacity", 5);
+
+  showTooltip = (d) => {
+    tooltip.transition()		
+      .duration(200)		
+      .style("opacity", .9);
+    
+    tooltip.html(() => {
+      return `
+        <p>${d.properties.name}</p>
+        <p><span>Streams:</span>${d.total}</p>
+        <p><span>On max bitrate:</span> % calculation</p>
+        <p><span>Sub division:</span>${d.properties.sub_division}</p>
+      `;
+    })
+    .style("left", (d3.event.pageX) + "px")		
+    .style("top", (d3.event.pageY - 28) + "px");
+  }
+
+  hideTooltip = (d) => {
+    tooltip.transition()    
+      .duration(500)    
+      .style("opacity", 5);
+  }
   </script>
